@@ -58,7 +58,11 @@ class CheckoutPanierService
                     throw new InvalidArgumentException('Activite non publiee.');
                 }
 
-                $sousTotal = bcadd($sousTotal, bcmul((string) $ligne->prix_unitaire_snapshot, (string) $ligne->quantite, 2), 2);
+                $sousTotal = $this->bcAdd(
+                    $sousTotal,
+                    $this->bcMul((string) $ligne->prix_unitaire_snapshot, (string) $ligne->quantite, 2),
+                    2
+                );
             }
 
             $montantReduction = '0.00';
@@ -71,8 +75,8 @@ class CheckoutPanierService
                 $montantReduction = $this->calculerReduction($promotion, $sousTotal, $lignes);
             }
 
-            $montantTotal = bcsub($sousTotal, $montantReduction, 2);
-            if (bccomp($montantTotal, '0', 2) < 0) {
+            $montantTotal = $this->bcSub($sousTotal, $montantReduction, 2);
+            if ($this->bcComp($montantTotal, '0', 2) < 0) {
                 $montantTotal = '0.00';
             }
 
@@ -165,13 +169,13 @@ class CheckoutPanierService
         }
 
         $min = $promotion->montant_minimum_commande;
-        if ($min !== null && bccomp($sousTotal, (string) $min, 2) < 0) {
+        if ($min !== null && $this->bcComp($sousTotal, (string) $min, 2) < 0) {
             throw new InvalidArgumentException('Montant minimum non atteint pour la promotion.');
         }
 
         $reduction = '0.00';
         if ($promotion->type_remise === 'pourcentage') {
-            $reduction = bcmul($sousTotal, bcdiv((string) $promotion->valeur, '100', 4), 2);
+            $reduction = $this->bcMul($sousTotal, $this->bcDiv((string) $promotion->valeur, '100', 4), 2);
         } elseif ($promotion->type_remise === 'montant_fixe') {
             $reduction = (string) $promotion->valeur;
         } else {
@@ -179,14 +183,67 @@ class CheckoutPanierService
         }
 
         $plafond = $promotion->reduction_plafond;
-        if ($plafond !== null && bccomp($reduction, (string) $plafond, 2) > 0) {
+        if ($plafond !== null && $this->bcComp($reduction, (string) $plafond, 2) > 0) {
             $reduction = (string) $plafond;
         }
 
-        if (bccomp($reduction, $sousTotal, 2) > 0) {
+        if ($this->bcComp($reduction, $sousTotal, 2) > 0) {
             $reduction = $sousTotal;
         }
 
         return $reduction;
+    }
+
+    private function bcAdd(string $left, string $right, int $scale = 2): string
+    {
+        if (function_exists('bcadd')) {
+            return bcadd($left, $right, $scale);
+        }
+
+        return number_format(((float) $left) + ((float) $right), $scale, '.', '');
+    }
+
+    private function bcSub(string $left, string $right, int $scale = 2): string
+    {
+        if (function_exists('bcsub')) {
+            return bcsub($left, $right, $scale);
+        }
+
+        return number_format(((float) $left) - ((float) $right), $scale, '.', '');
+    }
+
+    private function bcMul(string $left, string $right, int $scale = 2): string
+    {
+        if (function_exists('bcmul')) {
+            return bcmul($left, $right, $scale);
+        }
+
+        return number_format(((float) $left) * ((float) $right), $scale, '.', '');
+    }
+
+    private function bcDiv(string $left, string $right, int $scale = 2): string
+    {
+        if (function_exists('bcdiv')) {
+            return bcdiv($left, $right, $scale);
+        }
+
+        $divisor = (float) $right;
+        if ($divisor == 0.0) {
+            throw new InvalidArgumentException('Division par zero.');
+        }
+
+        return number_format(((float) $left) / $divisor, $scale, '.', '');
+    }
+
+    private function bcComp(string $left, string $right, int $scale = 2): int
+    {
+        if (function_exists('bccomp')) {
+            return bccomp($left, $right, $scale);
+        }
+
+        $l = round((float) $left, $scale);
+        $r = round((float) $right, $scale);
+
+        return $l <=> $r;
     }
 }
