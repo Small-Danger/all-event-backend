@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Gestion de l'authentification API.
@@ -49,7 +48,7 @@ class AuthController extends Controller
                     }
                 },
             ],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', 'string', 'min:8', 'max:255'],
             'prenom' => ['nullable', 'string', 'max:255'],
             'nom' => ['nullable', 'string', 'max:255'],
             'telephone' => [
@@ -240,7 +239,7 @@ class AuthController extends Controller
                     }
                 },
             ],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', 'string', 'min:8', 'max:255'],
             'nom' => ['required', 'string', 'max:255'],
             'raison_sociale' => ['required', 'string', 'max:255'],
             'numero_fiscal' => ['required', 'string', 'max:255'],
