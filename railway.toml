@@ -5,4 +5,6 @@
 # Cette commande est un filet de sécurité si l’image ne respecte pas déjà PORT (Dockerfile aligné).
 
 [deploy]
-startCommand = "php artisan serve --host=0.0.0.0 --port $PORT"
+# Obligatoire : exécuter via sh pour que ${PORT} soit développée. Sinon Laravel reçoit la chaîne littérale « $PORT »
+# et ServeCommand plante (Unsupported operand types: string + int).
+startCommand = "/bin/sh -c 'exec php artisan serve --host=0.0.0.0 --port ${PORT:-8000}'"
